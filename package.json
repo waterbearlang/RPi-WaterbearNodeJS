@@ -5,7 +5,8 @@
   "dependencies": {
     "mime": "~1.2.9",
     "ws": "~0.4.25",
-    "piface-node":""
+    "piface-node": "",
+    "browserid-verify": "~0.1.2"
   },
   "repository": {
     "type": "git",
