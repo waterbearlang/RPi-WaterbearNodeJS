@@ -1,15 +1,22 @@
 var fs = require('fs'),
     ws = require('ws'),
     util = require('util'),
-    url = require('url'),
     http = require('http'),
     path = require('path'),
     mime = require('mime'),
     vm = require('vm'),
-    verify = require('browserid-verify')();
+    express = require('express'),
+    index = require('./index');
 
 var childprocesses = [];
 var audience = "http://localhost:8000";
+
+var app = express();
+app.use(express.cookieParser());
+app.use(express.session({
+    secret: 'waterbear'
+}));
+app.use(app.router);
 
 process.on('SIGINT', function() {
     for (var kid in childprocesses) {
@@ -20,96 +27,14 @@ process.on('SIGINT', function() {
     process.exit();
 });
 
-var httpServer = http.createServer(function(request, response) {
-    var aURL = url.parse(request.url, true);
-    var pathname = aURL.pathname;
-    var query = JSON.stringify(aURL.query);
+app.get('/', index.index);
+app.post('/auth/persona', index.personaAuth(audience));
+app.get('/logout', index.logout);
+app.get('*', index.loadFile);
 
-    if (pathname === "/") {
-        pathname = "index.html";
-
-        var filename = path.join(process.cwd(), 'waterbear', pathname);
-
-        fs.exists(filename, function(exists) {
-            if (!exists) {
-                response.writeHead(404, {
-                    "Content-Type": "text/plain"
-                });
-                console.log("lolapooza");
-                response.write("404 Not Found");
-                response.end();
-                return;
-            }
-
-            response.writeHead(200, {
-                'Content-Type': mime.lookup(filename)
-            });
-            fs.createReadStream(filename, {
-                'flags': 'r',
-                'encoding': 'binary',
-                'mode': 666,
-                'bufferSize': 4 * 1024
-            }).addListener("data", function(chunk) {
-                response.write(chunk, 'binary');
-            }).addListener("close", function() {
-                response.end();
-            });
-        });
-    } else if (pathname === "/auth/persona") {
-        console.log('VERIFYING');
-        //console.log('query is: ' + query);
-
-        verify(query, audience, function(err, email, data) {
-            console.log('hello! this is a callback');
-            if (err) {
-                console.log('request to verify failed: ' + err);
-                response.writeHead(500, {
-                    'Content-Type': 'text/plain'
-                });
-            }
-
-            if (email) {
-                console.log('browserid auth successful, setting req.session.email');
-                response.writeHead(200, {
-                    'Content-Type': 'text/plain',
-                    'Access-Control-Allow-Origin': '*'
-                });
-            }
-
-            response.end();
-        });
-    } else {
-        var filename = path.join(process.cwd(), 'waterbear', pathname);
-
-        fs.exists(filename, function(exists) {
-            if (!exists) {
-                response.writeHead(404, {
-                    "Content-Type": "text/plain"
-                });
-                console.log("lolapooza");
-                response.write("404 Not Found");
-                response.end();
-                return;
-            }
-
-            response.writeHead(200, {
-                'Content-Type': mime.lookup(filename)
-            });
-            fs.createReadStream(filename, {
-                'flags': 'r',
-                'encoding': 'binary',
-                'mode': 666,
-                'bufferSize': 4 * 1024
-            }).addListener("data", function(chunk) {
-                response.write(chunk, 'binary');
-            }).addListener("close", function() {
-                response.end();
-            });
-        });
-    }
+var server = app.listen(8000, function() {
+    console.log('Listening on port %d', server.address().port);
 });
-
-httpServer.listen(8000);
 
 var WebSocketServer = require('ws').Server;
 var wss = new WebSocketServer({
