@@ -2,7 +2,14 @@ var fs = require('fs'),
     verify = require('browserid-verify')(),
     path = require('path'),
     url = require('url'),
-    mime = require('mime');
+    mime = require('mime'),
+    makeapi = require('makeapi-client')({
+        apiURL: "http://localhost:5000",
+        hawk: {
+            key: "00000000-0000-0000-000000000000",
+            id: "00000000-0000-0000-000000000000"
+        }
+    });
 
 exports.index = function(req, res) {
     var pathname = "index.html";
@@ -17,9 +24,8 @@ exports.loadFile = function(req, res) {
 }
 
 exports.personaAuth = function(audience) {
-    console.log("sup");
+
     return function(req, res) {
-        console.log("zing");
         var aURL = url.parse(req.url, true);
         var pathname = aURL.pathname;
         var assertion = req.query.assertion;
@@ -49,7 +55,31 @@ exports.logout = function(req, res) {
     var pathname = aURL.pathname;
 
     req.session.destroy();
-    return res.status(200);
+    return res.send(200);
+}
+
+exports.isAuthenticated = function(req, res) {
+    if (req.session.email) {
+        return res.send(200);
+    } else {
+        return res.send(400);
+    }
+}
+
+exports.createMake = function(req, res) {
+
+    makeapi.create({
+        maker: req.body.email,
+        make: req.body
+    }, function(err, newMake) {
+        if (err) {
+            console.log(err);
+            res.send(400);
+        } else {
+            console.log(newMake);
+            res.send(200);
+        }
+    });
 }
 
 function fileStream(pathname, res) {
