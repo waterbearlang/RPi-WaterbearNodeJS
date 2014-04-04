@@ -28,7 +28,7 @@ Running
 Get Minecraft Pi edition running and start a  game.
 
 ```bash
-nodejs nodejs-server.js
+nodejs waterbear
 ```
 
 then using a web browser on another machine visit
@@ -48,6 +48,28 @@ Install the RaspberryJuice plugin from http://dev.bukkit.org/server-mods/raspber
 Follow the rest of the Raspberry Pi instructions about installing and running nodejs and the web page. 
 
 Try not to make 40000 blocks of TNT touch lava.
+
+Running on the PC for any other purposes
+========================================
+
+```base
+nodejs waterbear
+```
+Dependencies
+============
+
+Refer to package.json for dependencies. 
+
+Structure
+=========
+
+waterbear.js is the main file of this project. It hosts two servers: the first one is an 
+ordinary Node server for RESTful calls to handle authentication, make creation, etc., while
+the second server is a WebSocket server that is responsbile for running the scripts created
+in Waterbear.
+
+index.js and auth.js are controller files. index.js handles filestreaming, while auth.js handles 
+authentication for users logging in with Persona.
 
 License
 =======

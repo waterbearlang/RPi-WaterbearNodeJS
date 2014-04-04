@@ -6,10 +6,36 @@ var fs = require('fs'),
     mime = require('mime'),
     vm = require('vm'),
     express = require('express'),
-    index = require('./index');
+    index = require('routes/index'),
+    makeapi = require('routes/makeapi'),
+    auth = require('routes/auth'),
+    passport = require('passport'),
+    GitHubStrategy = require('passport-github').Strategy;
 
 var childprocesses = [];
 var audience = "http://localhost:8000";
+
+var GITHUB_CLIENT_ID = "001ab661dc3e20b3abd9";
+var GITHUB_CLIENT_SECRET = "c9facbedad5815a4766ec27e33e140f018f26e34";
+
+exports.passport = passport;
+
+passport.serializeUser(function(user, done) {
+    done(null, user);
+});
+
+passport.deserializeUser(function(obj, done) {
+    done(null, obj);
+});
+
+passport.use(new GitHubStrategy({
+        clientID: GITHUB_CLIENT_ID,
+        clientSecret: GITHUB_CLIENT_SECRET,
+        callbackURL: "http://localhost:8000/auth/github/callback"
+    },
+    function(accessToken, refreshToken, profile, done) {
+        return done(null, profile);
+    }));
 
 var app = express();
 app.use(express.json());
@@ -18,6 +44,8 @@ app.use(express.session({
     key: 'waterbear',
     secret: 'waterbear'
 }));
+app.use(passport.initialize());
+app.use(passport.session());
 app.use(app.router);
 
 process.on('SIGINT', function() {
@@ -30,10 +58,28 @@ process.on('SIGINT', function() {
 });
 
 app.get('/', index.index);
-app.post('/auth/persona', index.personaAuth(audience));
-app.post('/logout', index.logout);
-app.get('/isAuthenicated', index.isAuthenticated);
-app.post('/make/create', index.createMake);
+
+app.post('/auth/persona', auth.personaAuth(audience));
+app.post('/logout', auth.logout);
+app.get('/isAuthenicated', auth.isAuthenticated);
+
+app.post('/make/create', makeapi.createMake);
+app.post('/make/delete', makeapi.deleteMake);
+app.post('/make/update', makeapi.updateMake);
+
+app.get('/auth/github',
+    passport.authenticate('github'),
+    function(req, res) {
+
+    });
+app.get('/auth/github/callback',
+    passport.authenticate('github,' {
+        failureRedirect: '/'
+    }),
+    function(req, res) {
+        res.redirect('/');
+    });
+
 app.get('*', index.loadFile);
 
 var server = app.listen(8000, function() {
