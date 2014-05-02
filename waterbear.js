@@ -6,9 +6,9 @@ var fs = require('fs'),
     mime = require('mime'),
     vm = require('vm'),
     express = require('express'),
-    index = require('routes/index'),
-    makeapi = require('routes/makeapi'),
-    auth = require('routes/auth'),
+    index = require('./routes/index'),
+    makeapi = require('./routes/makeapi'),
+    auth = require('./routes/auth'),
     passport = require('passport'),
     GitHubStrategy = require('passport-github').Strategy;
 
@@ -61,7 +61,7 @@ app.get('/', index.index);
 
 app.post('/auth/persona', auth.personaAuth(audience));
 app.post('/logout', auth.logout);
-app.get('/isAuthenicated', auth.isAuthenticated);
+app.get('/auth/isAuthenticated', auth.isAuthenticated);
 
 app.post('/make/create', makeapi.createMake);
 app.post('/make/delete', makeapi.deleteMake);
@@ -73,7 +73,7 @@ app.get('/auth/github',
 
     });
 app.get('/auth/github/callback',
-    passport.authenticate('github,' {
+    passport.authenticate('github', {
         failureRedirect: '/'
     }),
     function(req, res) {
